@@ -14,3 +14,14 @@ test('parseJxaEnvelope throws the JXA error message for a failed envelope', () =
     /Boom/
   );
 });
+
+test('parseJxaEnvelope ignores preamble lines before the JSON envelope', () => {
+  const result = parseJxaEnvelope(
+    '2026-03-08 13:00:24.300 osascript[1:1] Connection invalid\n{"ok":true,"result":{"count":2}}',
+    '',
+    0,
+    'Reminders'
+  );
+
+  assert.deepEqual(result, { count: 2 });
+});

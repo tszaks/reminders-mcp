@@ -11,6 +11,22 @@ function stripAnsi(value: string): string {
   return value.replace(/\u001b\[[0-9;]*m/g, '').trim();
 }
 
+function extractEnvelopeText(value: string): string {
+  const lines = value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    const candidate = lines[index];
+    if (candidate.startsWith('{') && candidate.endsWith('}')) {
+      return candidate;
+    }
+  }
+
+  return value;
+}
+
 export function parseJxaEnvelope<T>(
   stdout: string,
   stderr: string,
@@ -19,7 +35,7 @@ export function parseJxaEnvelope<T>(
 ): T {
   const output = stripAnsi(stdout);
   const errorOutput = stripAnsi(stderr);
-  const envelopeText = output || errorOutput;
+  const envelopeText = extractEnvelopeText(output || errorOutput);
 
   if (exitCode !== 0) {
     throw new Error(errorOutput || output || `osascript exited with code ${exitCode}`);

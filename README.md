@@ -55,7 +55,7 @@ Add this to your MCP config:
 
 On first use, macOS may prompt for Automation access so `osascript` can control Reminders. Approve access for your MCP client environment.
 
-## Planned Tool Surface
+## Tools
 
 - `reminders_list_accounts`
 - `reminders_list_lists`
@@ -81,6 +81,17 @@ On first use, macOS may prompt for Automation access so `osascript` can control 
 - "Move that reminder to the Work list"
 - "Clean up completed reminders in my Personal list"
 - "Remove duplicate reminders from Inbox"
+
+## Troubleshooting
+
+If reads fail with a message like `Failed to read Reminders accounts and lists` or `Parameter is missing`:
+
+1. Open `System Settings > Privacy & Security > Reminders`
+2. Grant Reminders access to the app hosting your MCP client, such as Terminal, Ghostty, or Codex
+3. If prompted separately, also allow Automation access for Reminders when macOS asks
+4. Re-run the MCP tool after permissions are granted
+
+If you see empty data on first run, launch Reminders once and try again after granting access.
 
 ## License
 

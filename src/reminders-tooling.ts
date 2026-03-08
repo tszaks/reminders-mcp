@@ -84,9 +84,10 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       type: 'object',
       properties: {
         list_id: { type: 'string' },
+        list_name: { type: 'string' },
         name: { type: 'string' },
       },
-      required: ['list_id', 'name'],
+      required: ['name'],
     },
   },
   {
@@ -96,8 +97,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       type: 'object',
       properties: {
         list_id: { type: 'string' },
+        list_name: { type: 'string' },
       },
-      required: ['list_id'],
     },
   },
   {
@@ -107,12 +108,12 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       type: 'object',
       properties: {
         title: { type: 'string' },
-        body: { type: 'string' },
+        body: { type: ['string', 'null'] },
         list_id: { type: 'string' },
         list_name: { type: 'string' },
-        due_date: { type: 'string' },
-        all_day_due_date: { type: 'string' },
-        remind_me_date: { type: 'string' },
+        due_date: { type: ['string', 'null'] },
+        all_day_due_date: { type: ['string', 'null'] },
+        remind_me_date: { type: ['string', 'null'] },
         priority: { type: 'number' },
         flagged: { type: 'boolean' },
       },
@@ -127,10 +128,10 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       properties: {
         reminder_id: { type: 'string' },
         title: { type: 'string' },
-        body: { type: 'string' },
-        due_date: { type: 'string' },
-        all_day_due_date: { type: 'string' },
-        remind_me_date: { type: 'string' },
+        body: { type: ['string', 'null'] },
+        due_date: { type: ['string', 'null'] },
+        all_day_due_date: { type: ['string', 'null'] },
+        remind_me_date: { type: ['string', 'null'] },
         priority: { type: 'number' },
         flagged: { type: 'boolean' },
         completed: { type: 'boolean' },
