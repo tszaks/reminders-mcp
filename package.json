@@ -4,44 +4,25 @@
   "description": "Local macOS Apple Reminders MCP server with full reminder and list management",
   "type": "module",
   "main": "dist/index.js",
-  "bin": {
-    "reminders-mcp": "dist/index.js"
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
+  "bin": { "reminders-mcp": "dist/index.js" },
+  "files": ["dist", "README.md", "LICENSE"],
   "scripts": {
     "build": "tsc -p tsconfig.json && node -e \"const fs=require('fs');const p='dist/index.js';if(fs.existsSync(p))fs.chmodSync(p,'755');\"",
     "start": "node dist/index.js",
+    "http-server": "node dist/http-server.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "npm run build --silent && node --test test/*.test.mjs"
   },
-  "keywords": [
-    "mcp",
-    "model-context-protocol",
-    "reminders",
-    "apple-reminders",
-    "macos"
-  ],
+  "engines": { "node": ">=20" },
   "author": "Szakacs Media Company",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/tszaks/reminders-mcp.git"
-  },
-  "bugs": {
-    "url": "https://github.com/tszaks/reminders-mcp/issues"
-  },
-  "homepage": "https://github.com/tszaks/reminders-mcp#readme",
-  "engines": {
-    "node": ">=20"
-  },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.26.0"
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "express": "^5.1.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/express": "^5.0.0",
     "@types/node": "^20.17.10",
     "typescript": "^5.7.3"
   }
