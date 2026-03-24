@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // reminders-mcp HTTP server — Express + StreamableHTTP transport wrapper
 // Runs on the Mac, exposes all reminders tools over authenticated HTTP.
-// ENV: PORT (default 3001), MCP_API_KEY (required)
+// ENV: PORT (default 3001), MCP_API_KEY (required), BASE_PATH (optional)
 //
 // Build: npm run build
 // Start: MCP_API_KEY=your-key PORT=3001 node dist/http-server.js
@@ -19,6 +19,7 @@ const PORT = Number(process.env.PORT || 3001);
 const HOST = '0.0.0.0';
 const VERSION = '1.0.0';
 const MCP_API_KEY = process.env.MCP_API_KEY;
+const BASE_PATH = normalizeBasePath(process.env.BASE_PATH);
 
 if (!MCP_API_KEY) throw new Error('Missing required env var: MCP_API_KEY');
 
@@ -31,6 +32,12 @@ function wrap<T>(fn: () => Promise<T>) { return fn().catch((e: unknown) => textR
 function requireBearer(req: express.Request, res: express.Response, next: express.NextFunction): void {
   if (req.headers.authorization !== `Bearer ${MCP_API_KEY}`) { res.status(401).json({ error: 'Unauthorized' }); return; }
   next();
+}
+
+function normalizeBasePath(value: string | undefined): string {
+  if (!value || value === '/') return '';
+  const trimmed = value.trim().replace(/^\/+|\/+$/g, '');
+  return trimmed ? `/${trimmed}` : '';
 }
 
 function createServer() {
@@ -73,10 +80,11 @@ function createServer() {
 
 const app = express();
 const transports = new Map<string, StreamableHTTPServerTransport>();
+const router = express.Router();
 app.use(express.json({ limit: '2mb' }));
-app.get('/healthz', (_req, res) => res.json({ ok: true, name: 'reminders-mcp', version: VERSION }));
-app.use('/mcp', requireBearer);
-app.post('/mcp', async (req, res) => {
+router.get('/healthz', (_req, res) => res.json({ ok: true, name: 'reminders-mcp', version: VERSION }));
+router.use('/mcp', requireBearer);
+router.post('/mcp', async (req, res) => {
   const sessionId = req.headers['mcp-session-id'] as string | undefined;
   if (sessionId && transports.has(sessionId)) { await transports.get(sessionId)!.handleRequest(req, res, req.body); return; }
   if (!sessionId && isInitializeRequest(req.body)) {
@@ -89,6 +97,8 @@ app.post('/mcp', async (req, res) => {
   }
   res.status(400).json({ jsonrpc: '2.0', error: { code: -32000, message: 'Invalid session' }, id: null });
 });
-app.get('/mcp', async (req, res) => { const s = req.headers['mcp-session-id'] as string | undefined; if (s && transports.has(s)) { await transports.get(s)!.handleRequest(req, res); return; } res.status(400).send('Invalid session'); });
-app.delete('/mcp', async (req, res) => { const s = req.headers['mcp-session-id'] as string | undefined; if (s && transports.has(s)) { await transports.get(s)!.handleRequest(req, res); return; } res.status(400).send('Invalid session'); });
-app.listen(PORT, HOST, () => { console.log(`reminders-mcp HTTP server listening on ${HOST}:${PORT}/mcp`); });
+router.get('/mcp', async (req, res) => { const s = req.headers['mcp-session-id'] as string | undefined; if (s && transports.has(s)) { await transports.get(s)!.handleRequest(req, res); return; } res.status(400).send('Invalid session'); });
+router.delete('/mcp', async (req, res) => { const s = req.headers['mcp-session-id'] as string | undefined; if (s && transports.has(s)) { await transports.get(s)!.handleRequest(req, res); return; } res.status(400).send('Invalid session'); });
+app.use(router);
+if (BASE_PATH) app.use(BASE_PATH, router);
+app.listen(PORT, HOST, () => { console.log(`reminders-mcp HTTP server listening on ${HOST}:${PORT}${BASE_PATH || ''}/mcp`); });
