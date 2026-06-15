@@ -153,7 +153,8 @@ function ensureAppReady(app) {
   }, false);
 }
 
-function buildState(app) {
+function buildState(app, options) {
+  var includeReminders = !options || options.includeReminders !== false;
   var state = {
     accounts: [],
     lists: [],
@@ -227,9 +228,11 @@ function buildState(app) {
     state.lists.push(listEntry);
     state.listsById[listEntry.id] = listEntry;
 
-    var reminders = readArrayOrThrow(function () { return listObj.reminders(); }, 'reminders');
-    for (var index = 0; index < reminders.length; index += 1) {
-      pushReminder(reminders[index], accountEntry, listEntry);
+    if (includeReminders) {
+      var reminders = readArrayOrThrow(function () { return listObj.reminders(); }, 'reminders');
+      for (var index = 0; index < reminders.length; index += 1) {
+        pushReminder(reminders[index], accountEntry, listEntry);
+      }
     }
   }
 
@@ -352,6 +355,27 @@ function serializeReminder(entry) {
     list_name: entry.listName,
     account_id: entry.accountId,
     account_name: entry.accountName,
+  };
+}
+
+function serializeReminderObject(reminderObj, listEntry, accountEntry) {
+  return {
+    id: safeCall(function () { return reminderObj.id(); }, ''),
+    title: safeCall(function () { return reminderObj.name(); }, ''),
+    body: cleanNullableText(safeCall(function () { return reminderObj.body(); }, '')),
+    completed: toBoolean(safeCall(function () { return reminderObj.completed(); }, false), false),
+    completion_date: toIsoDate(safeCall(function () { return reminderObj.completionDate(); }, null)),
+    due_date: toIsoDate(safeCall(function () { return reminderObj.dueDate(); }, null)),
+    all_day_due_date: toIsoDate(safeCall(function () { return reminderObj.alldayDueDate(); }, null)),
+    remind_me_date: toIsoDate(safeCall(function () { return reminderObj.remindMeDate(); }, null)),
+    priority: toInteger(safeCall(function () { return reminderObj.priority(); }, 0), 0, 0, 9),
+    flagged: toBoolean(safeCall(function () { return reminderObj.flagged(); }, false), false),
+    creation_date: toIsoDate(safeCall(function () { return reminderObj.creationDate(); }, null)),
+    modification_date: toIsoDate(safeCall(function () { return reminderObj.modificationDate(); }, null)),
+    list_id: listEntry.id,
+    list_name: listEntry.name,
+    account_id: accountEntry.id,
+    account_name: accountEntry.name,
   };
 }
 
@@ -618,7 +642,7 @@ function searchReminders(state, payload) {
 }
 
 function createList(app, payload) {
-  var state = buildState(app);
+  var state = buildState(app, { includeReminders: false });
   var accountEntry = resolveAccount(state, payload, { required: true });
   var listName = requireNonEmptyString(payload.name, 'name');
 
@@ -629,7 +653,7 @@ function createList(app, payload) {
   var listObj = app.List({ name: listName });
   accountEntry.obj.lists.push(listObj);
 
-  var updatedState = buildState(app);
+  var updatedState = buildState(app, { includeReminders: false });
   var createdList = updatedState.lists.find(function (entry) {
     return entry.id === safeCall(function () { return listObj.id(); }, '');
   });
@@ -645,13 +669,13 @@ function createList(app, payload) {
 }
 
 function updateList(app, payload) {
-  var state = buildState(app);
+  var state = buildState(app, { includeReminders: false });
   var listEntry = resolveList(state, payload, { required: true });
   var nextName = requireNonEmptyString(payload.name, 'name');
 
   listEntry.obj.name = nextName;
 
-  var updatedState = buildState(app);
+  var updatedState = buildState(app, { includeReminders: false });
   var updatedList = updatedState.listsById[listEntry.id];
 
   if (!updatedList) {
@@ -665,7 +689,7 @@ function updateList(app, payload) {
 }
 
 function deleteList(app, payload) {
-  var state = buildState(app);
+  var state = buildState(app, { includeReminders: false });
   var listEntry = resolveList(state, payload, { required: true });
   var snapshot = serializeList(listEntry, state);
 
@@ -679,9 +703,13 @@ function deleteList(app, payload) {
 }
 
 function createReminder(app, payload) {
-  var state = buildState(app);
+  var state = buildState(app, { includeReminders: false });
   var targetList = resolveList(state, payload, { required: true });
   var title = requireNonEmptyString(payload.title, 'title');
+  var targetAccount = state.accountsById[targetList.accountId] || {
+    id: targetList.accountId,
+    name: targetList.accountName,
+  };
 
   var reminderProperties = {
     name: title,
@@ -717,16 +745,8 @@ function createReminder(app, payload) {
   var reminderObj = app.Reminder(reminderProperties);
   targetList.obj.reminders.push(reminderObj);
 
-  var reminderId = safeCall(function () { return reminderObj.id(); }, '');
-  var updatedState = buildState(app);
-  var createdReminder = updatedState.remindersById[reminderId];
-
-  if (!createdReminder) {
-    throw new Error('Reminder was created but could not be reloaded.');
-  }
-
   return {
-    reminder: serializeReminder(createdReminder),
+    reminder: serializeReminderObject(reminderObj, targetList, targetAccount),
     created_at: new Date().toISOString(),
   };
 }
@@ -979,11 +999,11 @@ function runOperation(app, operation, payload) {
 
   switch (operation) {
     case 'list_accounts':
-      state = buildState(app);
+      state = buildState(app, { includeReminders: false });
       return listAccounts(state);
 
     case 'list_lists':
-      state = buildState(app);
+      state = buildState(app, { includeReminders: false });
       return listLists(state, payload);
 
     case 'list_reminders':
